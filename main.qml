@@ -14,7 +14,7 @@ import QtQuick.Layouts 1.1
 Window {
     visible: true
     width: 500
-    height: 400
+    height: 300
 
     ListModel {
         id: myModel

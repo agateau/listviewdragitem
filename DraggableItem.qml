@@ -18,6 +18,15 @@ Item {
 
     signal moveItemRequested(int from, int to)
 
+    // Size of the area at the top and bottom of the list where drag-scrolling happens
+    property int scrollEdgeSize: 6
+
+    // Internal: set to -1 when drag-scrolling up and 1 when drag-scrolling down
+    property int _scrollingDirection: 0
+
+    // Internal: shortcut to access the attached ListView from everywhere. Shorter than root.ListView.view
+    property ListView _listView: ListView.view
+
     width: contentItem.width
     height: contentItem.height
 
@@ -52,6 +61,22 @@ Item {
         }
     }
 
+    SmoothedAnimation {
+        id: upAnimation
+        target: _listView
+        property: "contentY"
+        to: 0
+        running: _scrollingDirection == -1
+    }
+
+    SmoothedAnimation {
+        id: downAnimation
+        target: _listView
+        property: "contentY"
+        to: _listView.contentHeight - _listView.height
+        running: _scrollingDirection == 1
+    }
+
     states: [
         State {
             when: dragArea.drag.active
@@ -71,6 +96,16 @@ Item {
             PropertyChanges {
                 target: root
                 height: 0
+                _scrollingDirection: {
+                    var yCoord = _listView.mapFromItem(dragArea, 0, dragArea.mouseY).y;
+                    if (yCoord < scrollEdgeSize) {
+                        -1;
+                    } else if (yCoord > _listView.height - scrollEdgeSize) {
+                        1;
+                    } else {
+                        0;
+                    }
+                }
             }
         }
     ]
@@ -117,5 +152,18 @@ Item {
             return;
         }
         root.moveItemRequested(model.index, dropIndex);
+
+        // Scroll the ListView to ensure the dropped item is visible. This is required when dropping an item after the
+        // last item of the view. Delay the scroll using a Timer because we have to wait until the view has moved the
+        // item before we can scroll to it.
+        makeDroppedItemVisibleTimer.start();
+    }
+
+    Timer {
+        id: makeDroppedItemVisibleTimer
+        interval: 0
+        onTriggered: {
+            _listView.positionViewAtIndex(model.index, ListView.Contain);
+        }
     }
 }
