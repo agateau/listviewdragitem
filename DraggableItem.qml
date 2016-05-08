@@ -130,7 +130,7 @@ Item {
             right: parent.right
             top: wrapperParent.verticalCenter
         }
-        property bool isLast: model.index === _listView.model.count - 1
+        property bool isLast: model.index === _listView.count - 1
         height: isLast ? _listView.contentHeight - y : contentItem.height
 
         property int dropIndex: model.index + 1
