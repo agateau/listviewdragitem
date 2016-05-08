@@ -2,6 +2,5 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>DraggableItem.qml</file>
-        <file>DraggableItemDropArea.qml</file>
     </qresource>
 </RCC>

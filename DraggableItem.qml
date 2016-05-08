@@ -28,7 +28,7 @@ Item {
     property ListView _listView: ListView.view
 
     width: contentItem.width
-    height: contentItem.height
+    height: topPlaceholder.height + wrapperParent.height + bottomPlaceholder.height
 
     // Make contentItem a child of contentItemWrapper
     onContentItemChanged: {
@@ -36,29 +36,59 @@ Item {
     }
 
     Rectangle {
-        id: contentItemWrapper
-        anchors.fill: parent
-        Drag.active: dragArea.drag.active
-        Drag.hotSpot {
-            x: contentItem.width / 2
-            y: contentItem.height / 2
+        id: topPlaceholder
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: parent.top
         }
+        height: 0
+        color: "lightgrey"
+    }
 
-        MouseArea {
-            id: dragArea
+    Item {
+        id: wrapperParent
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: topPlaceholder.bottom
+        }
+        height: contentItem.height
+
+        Rectangle {
+            id: contentItemWrapper
             anchors.fill: parent
-            drag.target: parent
-            // Keep the dragged item at the same X position. Nice for lists, but not mandatory
-            drag.axis: Drag.YAxis
-            // Disable smoothed so that the Item pixel from where we started the drag remains under the mouse cursor
-            drag.smoothed: false
+            Drag.active: dragArea.drag.active
+            Drag.hotSpot {
+                x: contentItem.width / 2
+                y: contentItem.height / 2
+            }
 
-            onReleased: {
-                if (drag.active) {
-                    emitMoveItemRequested();
+            MouseArea {
+                id: dragArea
+                anchors.fill: parent
+                drag.target: parent
+                // Disable smoothed so that the Item pixel from where we started the drag remains under the mouse cursor
+                drag.smoothed: false
+
+                onReleased: {
+                    if (drag.active) {
+                        emitMoveItemRequested();
+                    }
                 }
             }
         }
+    }
+
+    Rectangle {
+        id: bottomPlaceholder
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: wrapperParent.bottom
+        }
+        height: 0
+        color: "lightgrey"
     }
 
     SmoothedAnimation {
@@ -75,6 +105,35 @@ Item {
         property: "contentY"
         to: _listView.contentHeight - _listView.height
         running: _scrollingDirection == 1
+    }
+
+    Loader {
+        id: topDropAreaLoader
+        active: model.index === 0
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: wrapperParent.verticalCenter
+        }
+        height: contentItem.height
+        sourceComponent: Component {
+            DropArea {
+                property int dropIndex: 0
+            }
+        }
+    }
+
+    DropArea {
+        id: bottomDropArea
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: wrapperParent.verticalCenter
+        }
+        property bool isLast: model.index === _listView.model.count - 1
+        height: isLast ? _listView.contentHeight - y : contentItem.height
+
+        property int dropIndex: model.index + 1
     }
 
     states: [
@@ -94,8 +153,11 @@ Item {
                 height: contentItem.height
             }
             PropertyChanges {
-                target: root
+                target: wrapperParent
                 height: 0
+            }
+            PropertyChanges {
+                target: root
                 _scrollingDirection: {
                     var yCoord = _listView.mapFromItem(dragArea, 0, dragArea.mouseY).y;
                     if (yCoord < scrollEdgeSize) {
@@ -107,34 +169,32 @@ Item {
                     }
                 }
             }
-        }
-    ]
-
-    Loader {
-        id: topDropAreaLoader
-        active: model.index === 0
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: root.verticalCenter
-        }
-        height: contentItem.height
-        sourceComponent: Component {
-            DraggableItemDropArea {
-                dropIndex: 0
+        },
+        State {
+            when: bottomDropArea.containsDrag
+            name: "droppingBelow"
+            PropertyChanges {
+                target: bottomPlaceholder
+                height: contentItem.height
+            }
+            PropertyChanges {
+                target: bottomDropArea
+                height: contentItem.height * 2
+            }
+        },
+        State {
+            when: topDropAreaLoader.item.containsDrag
+            name: "droppingAbove"
+            PropertyChanges {
+                target: topPlaceholder
+                height: contentItem.height
+            }
+            PropertyChanges {
+                target: topDropAreaLoader
+                height: contentItem.height * 2
             }
         }
-    }
-
-    DraggableItemDropArea {
-        anchors {
-            left: parent.left
-            right: parent.right
-            top: root.verticalCenter
-        }
-        height: contentItem.height
-        dropIndex: model.index + 1
-    }
+    ]
 
     function emitMoveItemRequested() {
         var dropArea = contentItemWrapper.Drag.target;
