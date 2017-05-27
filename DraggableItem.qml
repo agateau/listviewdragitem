@@ -130,6 +130,7 @@ Item {
             right: parent.right
             top: wrapperParent.verticalCenter
         }
+        enabled: !dragArea.drag.active
         property bool isLast: model.index === _listView.count - 1
         height: isLast ? _listView.contentHeight - y : contentItem.height
 
