@@ -184,7 +184,7 @@ Item {
             }
         },
         State {
-            when: topDropAreaLoader.item.containsDrag
+            when: topDropAreaLoader.item !== null ? topDropAreaLoader.item.containsDrag : false
             name: "droppingAbove"
             PropertyChanges {
                 target: topPlaceholder
