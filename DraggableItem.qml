@@ -16,6 +16,8 @@ Item {
     // This item will become the parent of the dragged item during the drag operation
     property Item draggedItemParent
 
+    property bool dragActive: false
+
     signal moveItemRequested(int from, int to)
 
     // Size of the area at the top and bottom of the list where drag-scrolling happens
@@ -63,18 +65,20 @@ Item {
                 x: contentItem.width / 2
                 y: contentItem.height / 2
             }
-
             MouseArea {
                 id: dragArea
                 anchors.fill: parent
-                drag.target: parent
+                drag.target: dragActive ? parent : undefined // parent
+                drag.axis: ListView.orientation === ListView.Horizontal ? Drag.XAxis : Drag.YAxis
                 // Disable smoothed so that the Item pixel from where we started the drag remains under the mouse cursor
                 drag.smoothed: false
-
+                onCanceled: dragActive = false
+                onPressAndHold: dragActive = true
                 onReleased: {
                     if (drag.active) {
                         emitMoveItemRequested();
                     }
+                    dragActive = false
                 }
             }
         }
@@ -148,7 +152,7 @@ Item {
             }
             PropertyChanges {
                 target: contentItemWrapper
-                opacity: 0.9
+                opacity: 0.5
                 anchors.fill: undefined
                 width: contentItem.width
                 height: contentItem.height
@@ -194,7 +198,16 @@ Item {
                 target: topDropAreaLoader
                 height: contentItem.height * 2
             }
+        },
+        State {
+            when: dragActive
+            name: "holding"
+            PropertyChanges {
+                target: contentItemWrapper
+                opacity: 0.5
+            }
         }
+
     ]
 
     function emitMoveItemRequested() {
